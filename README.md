@@ -9,6 +9,7 @@ Install it:
 
 apt install ansible sshpass
 
+
 Run it:
 
 ###  Create address objects and add to a group - uses var/var_add_objects.yml
