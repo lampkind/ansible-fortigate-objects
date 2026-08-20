@@ -1,0 +1,21 @@
+---
+fortigate_username: admin
+fortigate_ssh_port: 22
+
+fortigate_address_group: testgroup
+
+fortigate_address_objects:
+  - name: NET_RemoteOffice_01
+    subnet: 10.50.10.0
+    mask: 255.255.255.0
+    comment: Remote office 01
+
+  - name: NET_RemoteOffice_02
+    subnet: 10.50.20.0
+    mask: 255.255.255.0
+    comment: Remote office 02
+
+  - name: HOST_Monitoring_Server
+    subnet: 10.60.1.25
+    mask: 255.255.255.255
+    comment: Monitoring server

@@ -1,0 +1,5 @@
+---
+fortigate_address_objects:
+  - NET_RemoteOffice_01
+  - NET_RemoteOffice_02
+  - HOST_Monitoring_Server

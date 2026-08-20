@@ -1,0 +1,10 @@
+---
+fortigate_username: admin
+fortigate_ssh_port: 22
+
+fortigate_address_group: testgroup
+
+fortigate_objects_to_remove:
+  - HOST_Monitoring_Server
+  - NET_RemoteOffice_01
+  - NET_RemoteOffice_02

@@ -1,0 +1,81 @@
+---
+- name: Create FortiGate address objects and update address group
+  hosts: fortigates
+  gather_facts: false
+  serial: 1
+
+  vars_files:
+    - vars/var_add_objects.yml
+
+  vars_prompt:
+    - name: fortigate_password
+      prompt: Enter the shared FortiGate SSH password
+      private: true
+
+  tasks:
+    - name: Validate FortiGate variables
+      ansible.builtin.assert:
+        that:
+          - fortigate_username is defined
+          - fortigate_username | length > 0
+          - fortigate_ssh_port is defined
+          - fortigate_address_group is defined
+          - fortigate_address_group | length > 0
+          - fortigate_address_objects is defined
+          - fortigate_address_objects | length > 0
+        fail_msg: >-
+          Required FortiGate variables were not loaded from
+          vars/fortigate.yml.
+
+    - name: Build FortiGate CLI configuration
+      ansible.builtin.set_fact:
+        fortigate_cli_config: |
+          config firewall address
+          {% for address in fortigate_address_objects %}
+              edit "{{ address.name }}"
+                  set subnet {{ address.subnet }} {{ address.mask }}
+          {% if address.comment is defined and address.comment | length > 0 %}
+                  set comment "{{ address.comment }}"
+          {% endif %}
+              next
+          {% endfor %}
+          end
+          config firewall addrgrp
+              edit "{{ fortigate_address_group }}"
+          {% for address in fortigate_address_objects %}
+                  append member "{{ address.name }}"
+          {% endfor %}
+              next
+          end
+
+    - name: Configure FortiGate through SSH
+      ansible.builtin.command:
+        argv:
+          - sshpass
+          - -e
+          - ssh
+          - -T
+          - -p
+          - "{{ fortigate_ssh_port | string }}"
+          - -o
+          - StrictHostKeyChecking=accept-new
+          - -o
+          - ConnectTimeout=15
+          - -o
+          - PreferredAuthentications=password
+          - -o
+          - PubkeyAuthentication=no
+          - "{{ fortigate_username }}@{{ ansible_host }}"
+        stdin: "{{ fortigate_cli_config }}"
+      environment:
+        SSHPASS: "{{ fortigate_password }}"
+      delegate_to: localhost
+      register: fortigate_result
+      changed_when: fortigate_result.rc == 0
+      no_log: true
+
+    - name: Report result
+      ansible.builtin.debug:
+        msg: >-
+          Configured {{ inventory_hostname }} at {{ ansible_host }}.
+          Address objects were added to {{ fortigate_address_group }}.

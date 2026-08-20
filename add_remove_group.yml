@@ -1,0 +1,83 @@
+---
+- name: Create or Remove FortiGate Address Group
+  hosts: fortigates
+  gather_facts: false
+  serial: 1
+
+  vars:
+    fortigate_username: admin
+    fortigate_ssh_port: 22
+
+  vars_prompt:
+    - name: fortigate_password
+      prompt: "Enter the shared FortiGate SSH password"
+      private: yes
+
+    - name: group_action
+      prompt: "Enter address group action (add/remove)"
+      private: no
+
+    - name: fortigate_address_group
+      prompt: "Enter the Address Group name"
+      private: no
+
+  tasks:
+
+    - name: Validate action
+      ansible.builtin.assert:
+        that:
+          - group_action | lower in ['add', 'remove']
+        fail_msg: "Action must be either 'add' or 'remove'."
+
+    - name: Build CLI to create address group
+      ansible.builtin.set_fact:
+        fortigate_cli_config: |
+          config firewall addrgrp
+              edit "{{ fortigate_address_group }}"
+                  set comment "Created by Ansible"
+                  set color 6
+              next
+          end
+      when: group_action | lower == "add"
+
+    - name: Build CLI to remove address group
+      ansible.builtin.set_fact:
+        fortigate_cli_config: |
+          config firewall addrgrp
+              delete "{{ fortigate_address_group }}"
+          end
+      when: group_action | lower == "remove"
+
+    - name: Execute configuration
+      ansible.builtin.command:
+        argv:
+          - sshpass
+          - -e
+          - ssh
+          - -T
+          - -p
+          - "{{ fortigate_ssh_port | string }}"
+          - -o
+          - StrictHostKeyChecking=accept-new
+          - -o
+          - ConnectTimeout=15
+          - -o
+          - PreferredAuthentications=password
+          - -o
+          - PubkeyAuthentication=no
+          - "{{ fortigate_username }}@{{ ansible_host }}"
+        stdin: "{{ fortigate_cli_config }}"
+      environment:
+        SSHPASS: "{{ fortigate_password }}"
+      delegate_to: localhost
+      register: result
+      changed_when: result.rc == 0
+      failed_when: result.rc != 0
+      no_log: true
+
+    - name: Display Result
+      ansible.builtin.debug:
+        msg: >-
+          {{ group_action | capitalize }} operation completed for
+          '{{ fortigate_address_group }}'
+          on {{ inventory_hostname }}.
