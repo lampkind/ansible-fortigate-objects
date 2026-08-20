@@ -6,6 +6,7 @@ FortiOS address groups are configured under config firewall addrgrp; the playboo
 Prompts for ssh password when ran, firewall IP addresses listed in inventory.yml
 
 Install it:
+
 apt install ansible sshpass
 
 Run it:
